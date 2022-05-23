@@ -16,8 +16,8 @@ class Embedding(nn.Module):
         self.embed_user = [nn.Embedding(user_num, factor_num) for _ in range(emb_size)]
         self.embed_item = [nn.Embedding(item_num, factor_num) for _ in range(emb_size)]
 
-        self.cls_token = nn.Parameter(torch.randn(1, 1, emb_size))
-        self.positions = nn.Parameter(torch.randn(2 * factor_num + 1, emb_size))
+        #self.cls_token = nn.Parameter(torch.randn(1, 1, emb_size))
+        #self.positions = nn.Parameter(torch.randn(2 * factor_num + 1, emb_size))
     
     def forward(self, user, item):
         b, _ = user.size()
@@ -34,13 +34,13 @@ class Embedding(nn.Module):
         x = torch.cat([embed_user, embed_item], dim = 1) # b, factor_num * 2, 2*emb_size
 
         # pretend the cls tokens to the input
-        cls_tokens = repeat(self.cls_token, '() n e -> b n e', b=b)
-        x = torch.cat([cls_tokens, x], dim=1) # b , factor_num + 1, 2 * emb_size
+        #cls_tokens = repeat(self.cls_token, '() n e -> b n e', b=b)
+        #x = torch.cat([cls_tokens, x], dim=1) # b , factor_num + 1, 2 * emb_size
 
         # add position embedding
-        x += self.positions
+        #x += self.positions
 
-        return x
+        return x, embed_user, embed_item
 
 
 class MultiHeadAttention(nn.Module):
@@ -137,11 +137,11 @@ class TransformerEncoder(nn.Sequential):
 
 
 class ClassificationHead(nn.Sequential):
-    def __init__(self, emb_size : int = 256):
+    def __init__(self, emb_size : int = 256, out_size : int = 1):
         super().__init__(
             Reduce('b n e -> b e', reduction = 'mean'),
             nn.LayerNorm(emb_size),
-            nn.Linear(emb_size, 1)
+            nn.Linear(emb_size, out_size)
         )
 
 
@@ -151,6 +151,10 @@ class ViT(nn.Module):
                  emb_size : int = 256,
                  factor_num : int = 128,
                  depth : int = 12,
+                 depth_user : int = 6,
+                 depth_item : int = 6,
+                 user_out : int = 100,
+                 item_out : int = 100,
                  **kwargs):
         """ NCF Framework Using Transformer Structure
 
@@ -160,14 +164,29 @@ class ViT(nn.Module):
             emb_size (int, optional): number of embedding layers. Defaults to 256.
             factor_num (int, optional): number of predictive factors. Defaults to 128.
             depth (int, optional): number of EncoderBlock. Defaults to 12.
+            depth_user (int, optional): number of user axiliary classifier encoderBlock. Defaults to 6.
+            depth_item (int, optional): number of item axiliary classifier encoderBlock. Defaults to 6.
+            user_out (int, optional) : output size of user auxiliary classifier. Defaults to 100.
+            item_out (int, optional) : output size of item auxiliary classifier. Defaults to 100.
         """
         super().__init__()
         self.emb = Embedding(user_num, item_num, emb_size, factor_num)
         self.enc = TransformerEncoder(depth, **kwargs)
         self.cls = ClassificationHead()
+
+        self.enc_user = TransformerEncoder(depth_user, **kwargs)
+        self.enc_item = TransformerEncoder(depth_item, **kwargs)
+        self.cls_user = ClassificationHead(out_size = user_out)
+        self.cls_item = ClassificationHead(out_size = item_out)
+        
     
     def forward(self, user, item):
-        x = self.emb(user, item)
+        x, embed_user, embed_item = self.emb(user, item)
         x = self.enc(x)
         x = self.cls(x)
-        return x
+
+        x_user = self.enc_user(embed_user)
+        x_item = self.enc_item(embed_item)
+        x_user = self.cls_user(x_user)
+        x_item = self.cls_item(x_item)
+        return x, x_user, x_item
