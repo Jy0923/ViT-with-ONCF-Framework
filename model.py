@@ -15,9 +15,6 @@ class Embedding(nn.Module):
 
         self.embed_user = [nn.Embedding(user_num, factor_num) for _ in range(emb_size)]
         self.embed_item = [nn.Embedding(item_num, factor_num) for _ in range(emb_size)]
-
-        #self.cls_token = nn.Parameter(torch.randn(1, 1, emb_size))
-        #self.positions = nn.Parameter(torch.randn(2 * factor_num + 1, emb_size))
     
     def forward(self, user, item):
         b, _ = user.size()
@@ -31,15 +28,7 @@ class Embedding(nn.Module):
         embed_user = rearrange(embed_user, 'b n c -> b c n')
         embed_item = rearrange(embed_item, 'b n c -> b c n')
 
-        x = torch.cat([embed_user, embed_item], dim = 1) # b, factor_num * 2, 2*emb_size
-
-        # pretend the cls tokens to the input
-        #cls_tokens = repeat(self.cls_token, '() n e -> b n e', b=b)
-        #x = torch.cat([cls_tokens, x], dim=1) # b , factor_num + 1, 2 * emb_size
-
-        # add position embedding
-        #x += self.positions
-
+        x = torch.cat([embed_user, embed_item], dim = 1)
         return x, embed_user, embed_item
 
 
@@ -146,7 +135,8 @@ class ClassificationHead(nn.Sequential):
 
 
 class ViT(nn.Module):
-    def __init__(self,user_num : int = 100,
+    def __init__(self,
+                 user_num : int = 100,
                  item_num : int = 100,
                  emb_size : int = 256,
                  factor_num : int = 128,
@@ -170,14 +160,17 @@ class ViT(nn.Module):
             item_out (int, optional) : output size of item auxiliary classifier. Defaults to 100.
         """
         super().__init__()
-        self.emb = Embedding(user_num, item_num, emb_size, factor_num)
-        self.enc = TransformerEncoder(depth, **kwargs)
-        self.cls = ClassificationHead()
+        self.emb = Embedding(user_num = user_num,
+                             item_num = item_num, 
+                             emb_size = emb_size, 
+                             factor_num = factor_num)
+        self.enc = TransformerEncoder(depth = depth, emb_size = emb_size, **kwargs)
+        self.cls = ClassificationHead(emb_size = emb_size, out_size = 1)
 
-        self.enc_user = TransformerEncoder(depth_user, **kwargs)
-        self.enc_item = TransformerEncoder(depth_item, **kwargs)
-        self.cls_user = ClassificationHead(out_size = user_out)
-        self.cls_item = ClassificationHead(out_size = item_out)
+        self.enc_user = TransformerEncoder(depth_user, emb_size = emb_size, **kwargs)
+        self.enc_item = TransformerEncoder(depth_item, emb_size = emb_size, **kwargs)
+        self.cls_user = ClassificationHead(emb_size = emb_size, out_size = user_out)
+        self.cls_item = ClassificationHead(emb_size = emb_size, out_size = item_out)
         
     
     def forward(self, user, item):
