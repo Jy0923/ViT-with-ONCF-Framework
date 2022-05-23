@@ -152,8 +152,6 @@ def train(num_epochs, model, train_loader, val_loader, criterion, optimizer, top
             description =  f'Epoch [{epoch+1}/{num_epochs}], Step [{step+1}/{len(train_loader)}]: ' 
             description += f'running Loss: {round(running_loss,4)}'
             pbar.set_description(description)
-            if step == 10:
-                break
             
              
         # validation 주기에 따른 loss 출력 및 best model 저장
@@ -208,8 +206,6 @@ def validation(epoch, num_epochs, model, data_loader, top_k, device):
             gt_item = item[0].item()
             HR.append(hit(gt_item, recommends))
             NDCG.append(ndcg(gt_item, recommends))
-            if step == 10:
-                break
         
         print(f"Epoch [{epoch + 1} / {num_epochs}], HR: {np.mean(HR)}, NDCG: {np.mean(NDCG)}")
     return np.mean(HR), np.mean(NDCG)
