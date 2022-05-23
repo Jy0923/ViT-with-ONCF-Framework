@@ -33,28 +33,29 @@ def load_all(data_path: str,
     return train_data, test_data, user_num, item_num, train_mat
 
 def load_aux(data_path: str,
-            aux_col: str,
-             test_size: float = 0.3):
+            id_col: str,
+            aux_col: str):
     """ We load all the three file here to save time in each epoch. """
     """
     data_path: 데이터 경로
+    id_col: "user" or "item"
     aux_col: auxiliary 정보가 있는 column명
-    test_size: test data 비율
     """
-    train_data = pd.read_csv(
-        data_path, dtype={0: np.int32, 1: np.int32})
-
-    user_num = train_data['회원번호'].max() + 1
-    item_num = train_data[aux_col].max() + 1
-
-    train_data = train_data.values.tolist()
-
-    # load auxiliary information as a dok matrix
-    mat = sp.dok_matrix((user_num, item_num), dtype=np.float32)
-    for x in train_data:
-        mat[x[0], x[1]] = 1.0
+    data = pd.read_csv(data_path, encoding='cp949')
     
-    return mat
+    id2main = dict(enumerate(data[id_col].unique()))
+    main2id = {j:i for i, j in id2main.items()}
+
+    id2aux = dict(enumerate(data[aux_col].unique()))
+    aux2id = {j:i for i, j in id2aux.items()}
+    
+    aux_data = data.groupby(id_col)[aux_col].unique().map(lambda x: x[0]).reset_index()
+    aux_data[id_col] = aux_data[id_col].map(lambda x: main2id[x])
+    aux_data[aux_col] = aux_data[aux_col].map(lambda x: aux2id[x])
+
+    res = dict(aux_data.values)
+    
+    return res
 
 class CustomDataset(data.Dataset):
     def __init__(self, data_path_main : str,
@@ -80,16 +81,18 @@ class CustomDataset(data.Dataset):
         train_data, test_data, user_num, item_num, train_mat = load_all(data_path_main, test_size)
         
         # loading user auxiliary information data
+        self.user_auxes = []
         try:
             for i in range(len(data_path_aux_user)):
-                self.globals()[f'mat_{aux_col_user[i]}'] = (data_path_aux_user[i], aux_col_user[i], test_size)
+                self.user_auxes.append(load_aux(data_path_aux_user[i], '회원번호', aux_col_user[i]))
         except:
             pass
         
         # loading item auxiliary information data
+        self.item_auxes = []
         try:
             for i in range(len(data_path_aux_item)):
-                self.globals()[f'mat_{aux_col_item[i]}'] = (data_path_aux_item[i], aux_col_item[i], test_size)
+                self.item_auxes.append(load_aux(data_path_aux_item[i], '책제목', aux_col_item[i]))
         except:
             pass
         
@@ -105,6 +108,11 @@ class CustomDataset(data.Dataset):
         self.num_ng = num_ng
         self.is_training = is_training
         self.labels = [0 for _ in range(len(features))]
+        
+        self.data_path_aux_user = data_path_aux_user
+        self.data_path_aux_item = data_path_aux_item
+        self.aux_col_user = aux_col_user
+        self.aux_col_item = aux_col_item
 
     def ng_sample(self):
         """negative sampling"""
@@ -130,22 +138,28 @@ class CustomDataset(data.Dataset):
         return (self.num_ng + 1) * len(self.labels)
 
     def __getitem__(self, idx):
-        features = self.features_fill if self.is_training \
-                    else self.features_ps
-        labels = self.labels_fill if self.is_training \
-                    else self.labels
+        features = self.features_fill if self.is_training else self.features_ps
+        labels = self.labels_fill if self.is_training else self.labels
 
         # user, item, label
-        user = torch.LongTensor(features[idx][0])
-        item = torch.LongTensor(features[idx][1])
-        label_main = torch.LongTensor(labels[idx])
+        user_ = features[idx][0]
+        item_ = features[idx][1]
+        user = torch.LongTensor([user_])
+        item = torch.LongTensor([item_])
+        label_main = torch.LongTensor([labels[idx]])
         
         results = {'user_id':user, 'item_id':item, 'target_main':label_main}
         
         # auxiliary information
-        for i in range(len(data_path_aux_user)):
-            results.update( {f'target_user_aux_{aux_col_user[i]}' : torch.LongTensor(self.globals()[f'mat_{aux_col_user[i]}'][user])} )
-        for i in range(len(data_path_aux_item)):
-            results.update( {f'target_item_aux_{aux_col_item[i]}' : torch.LongTensor(self.globals()[f'mat_{aux_col_item[i]}'][item])} )
+        try:
+            for i in range(len(self.data_path_aux_user)):
+                results.update( {f'target_user_aux_{self.aux_col_user[i]}' : torch.LongTensor([self.user_auxes[i][user_]])} )
+        except:
+            pass
+        try:
+            for i in range(len(self.data_path_aux_item)):
+                results.update( {f'target_item_aux_{self.aux_col_item[i]}' : torch.LongTensor([self.item_auxes[i][item_]])} )
+        except:
+            pass
         
         return results
