@@ -12,9 +12,9 @@ class Embedding(nn.Module):
                  emb_size : int = 256, 
                  factor_num : int = 128):
         super(Embedding, self).__init__()
-
-        self.embed_user = [nn.Embedding(user_num, factor_num) for _ in range(emb_size)]
-        self.embed_item = [nn.Embedding(item_num, factor_num) for _ in range(emb_size)]
+        device = torch.device('cuda' if torch.cuda.is_available else 'cpu')
+        self.embed_user = [nn.Embedding(user_num, factor_num).to(device) for _ in range(emb_size)]
+        self.embed_item = [nn.Embedding(item_num, factor_num).to(device) for _ in range(emb_size)]
     
     def forward(self, user, item):
         b, _ = user.size()
