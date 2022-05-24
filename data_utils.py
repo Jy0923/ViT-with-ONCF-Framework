@@ -59,8 +59,7 @@ def load_aux(data_path: str,
 
 class CustomDataset(data.Dataset):
     def __init__(self, data_path_main : str,
-                 data_path_aux_user = None, aux_col_user = None,
-                 data_path_aux_item = None, aux_col_item = None,
+                 data_path_aux : str,
                  test_size : float = 0.3, num_ng=0, is_training=None):
         super(CustomDataset, self).__init__()
         """ Note that the labels are only useful when training, we thus 
@@ -68,10 +67,7 @@ class CustomDataset(data.Dataset):
         """
         """
         data_path_main: main data(rating matrix) 데이터 경로
-        data_path_aux_user: user auxiliary information 데이터 경로(들) -> 리스트 형태
-        aux_col_user: user axiliary information 정보가 있는 column명(들) -> 리스트 형태
-        data_path_aux_item: item auxiliary information 데이터 경로(들) -> 리스트 형태
-        aux_col_item: item axiliary information 정보가 있는 column명(들) -> 리스트 형태
+        data_path_aux: user auxiliary information 데이터 경로(들) -> 리스트 형태
         test_size: test data 비율
         num_ng: negative sampling 비율 (vs positive sample)
         is_training: training 여부
@@ -81,20 +77,8 @@ class CustomDataset(data.Dataset):
         train_data, test_data, user_num, item_num, train_mat = load_all(data_path_main, test_size)
         
         # loading user auxiliary information data
-        self.user_auxes = []
-        try:
-            for i in range(len(data_path_aux_user)):
-                self.user_auxes.append(load_aux(data_path_aux_user[i], '회원번호', aux_col_user[i]))
-        except:
-            pass
-        
-        # loading item auxiliary information data
-        self.item_auxes = []
-        try:
-            for i in range(len(data_path_aux_item)):
-                self.item_auxes.append(load_aux(data_path_aux_item[i], '책제목', aux_col_item[i]))
-        except:
-            pass
+        self.aux_cat = load_aux(data_path_aux, '회원번호', '카테고리')
+        self.aux_publisher = load_aux(data_path_aux, '회원번호', '출판사')
         
         # 학습 여부에 따라 features 변수에 알맞는 데이터 할당
         if is_training == True:
@@ -146,24 +130,10 @@ class CustomDataset(data.Dataset):
         item_ = features[idx][1]
         user = torch.LongTensor([user_])
         item = torch.LongTensor([item_])
-        label_main = torch.FloatTensor([labels[idx]])
+        label_main = torch.LongTensor([labels[idx]])
+        category = torch.LongTensor([self.aux_cat[item_]])
+        publisher = torch.LongTensor([self.aux_publisher[item_]])
         
-        results = {'user_id':user,
-                   'item_id':item, 
-                   'target_main':label_main,
-                   'target_user_aux' : torch.empty(1),
-                   'target_item_aux' : torch.empty(1)}
-        
-        # auxiliary information
-        try:
-            for i in range(len(self.data_path_aux_user)):
-                results.update( {f'target_user_aux' : torch.LongTensor([self.user_auxes[i][user_]])} )
-        except:
-            pass
-        try:
-            for i in range(len(self.data_path_aux_item)):
-                results.update( {f'target_item_aux' : torch.LongTensor([self.item_auxes[i][item_]])} )
-        except:
-            pass
+        results = {'user_id':user, 'item_id':item, 'target_main':label_main, 'aux_cat':category, 'aux_publisher':publisher}
         
         return results
