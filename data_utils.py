@@ -146,19 +146,23 @@ class CustomDataset(data.Dataset):
         item_ = features[idx][1]
         user = torch.LongTensor([user_])
         item = torch.LongTensor([item_])
-        label_main = torch.LongTensor([labels[idx]])
+        label_main = torch.FloatTensor([labels[idx]])
         
-        results = {'user_id':user, 'item_id':item, 'target_main':label_main}
+        results = {'user_id':user,
+                   'item_id':item, 
+                   'target_main':label_main,
+                   'target_user_aux' : torch.empty(1),
+                   'target_item_aux' : torch.empty(1)}
         
         # auxiliary information
         try:
             for i in range(len(self.data_path_aux_user)):
-                results.update( {f'target_user_aux_{self.aux_col_user[i]}' : torch.LongTensor([self.user_auxes[i][user_]])} )
+                results.update( {f'target_user_aux' : torch.LongTensor([self.user_auxes[i][user_]])} )
         except:
             pass
         try:
             for i in range(len(self.data_path_aux_item)):
-                results.update( {f'target_item_aux_{self.aux_col_item[i]}' : torch.LongTensor([self.item_auxes[i][item_]])} )
+                results.update( {f'target_item_aux' : torch.LongTensor([self.item_auxes[i][item_]])} )
         except:
             pass
         
