@@ -17,7 +17,6 @@ class Embedding(nn.Module):
         self.embed_item = [nn.Embedding(item_num, factor_num).to(device) for _ in range(emb_size)]
     
     def forward(self, user, item):
-        b, _ = user.size()
 
         embed_user = [layer(user) for layer in self.embed_user]
         embed_item = [layer(item) for layer in self.embed_item]
