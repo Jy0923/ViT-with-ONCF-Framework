@@ -7,15 +7,15 @@ from sklearn.model_selection import train_test_split
 import torch
 import torch.utils.data as data
 
-def load_all(data_path: str,
-             test_size: float = 0.3):
+def load_all(data_path_train: str,
+            data_path_test: str):
     """ We load all the three file here to save time in each epoch. """
     """
-    data_path: 데이터 경로
-    test_size: test data 비율
+    data_path_train: 학습 데이터 경로
+    data_path_test: 평가 데이터 경로
     """
     train_data = pd.read_csv(
-        data_path, dtype={0: np.int32, 1: np.int32})
+        data_path_train, dtype={0: np.int32, 1: np.int32})
 
     user_num = train_data['회원번호'].max() + 1
     item_num = train_data['책제목'].max() + 1
@@ -27,8 +27,16 @@ def load_all(data_path: str,
     for x in train_data:
         train_mat[x[0], x[1]] = 1.0
     
-    # 데이터 분할
-    train_data, test_data = train_test_split(train_data, test_size=test_size, shuffle=True, random_state=0)
+    # test data
+    test_data_raw = np.load(
+    data_path_test, allow_pickle=True)
+    
+    test_data = []
+    for data in test_data_raw:
+        u = data[0]
+        i = data[1]
+        for item in i:
+            test_data.append([u, int(item)])
 
     return train_data, test_data, user_num, item_num, train_mat
 
@@ -58,27 +66,27 @@ def load_aux(data_path: str,
     return res
 
 class CustomDataset(data.Dataset):
-    def __init__(self, data_path_main : str,
+    def __init__(self, data_path_main_train : str, data_path_main_test : str,
                  data_path_aux_user = None, aux_col_user = None,
                  data_path_aux_item = None, aux_col_item = None,
-                 test_size : float = 0.3, num_ng=0, is_training=None):
+                 num_ng=0, is_training=None):
         super(CustomDataset, self).__init__()
         """ Note that the labels are only useful when training, we thus 
             add them in the ng_sample() function.
         """
         """
-        data_path_main: main data(rating matrix) 데이터 경로
+        data_path_main_train: main data 학습 데이터 경로
+        data_path_main_test: main data 평가 데이터 경로
         data_path_aux_user: user auxiliary information 데이터 경로(들) -> 리스트 형태
         aux_col_user: user axiliary information 정보가 있는 column명(들) -> 리스트 형태
         data_path_aux_item: item auxiliary information 데이터 경로(들) -> 리스트 형태
-        aux_col_item: item axiliary information 정보가 있는 column명(들) -> 리스트 형태
-        test_size: test data 비율
+        aux_col_item: item axiliary information 정보가 있는 column명(들)
         num_ng: negative sampling 비율 (vs positive sample)
         is_training: training 여부
         """
 
         # loading main data
-        train_data, test_data, user_num, item_num, train_mat = load_all(data_path_main, test_size)
+        train_data, test_data, user_num, item_num, train_mat = load_all(data_path_main_train, data_path_main_test)
         
         # loading user auxiliary information data
         self.user_auxes = []
@@ -146,23 +154,19 @@ class CustomDataset(data.Dataset):
         item_ = features[idx][1]
         user = torch.LongTensor([user_])
         item = torch.LongTensor([item_])
-        label_main = torch.FloatTensor([labels[idx]])
+        label_main = torch.LongTensor([labels[idx]])
         
-        results = {'user_id':user,
-                   'item_id':item, 
-                   'target_main':label_main,
-                   'target_user_aux' : torch.empty(1),
-                   'target_item_aux' : torch.empty(1)}
+        results = {'user_id':user, 'item_id':item, 'target_main':label_main}
         
         # auxiliary information
         try:
             for i in range(len(self.data_path_aux_user)):
-                results.update( {f'target_user_aux' : torch.LongTensor([self.user_auxes[i][user_]])} )
+                results.update( {f'target_user_aux_{self.aux_col_user[i]}' : torch.LongTensor([self.user_auxes[i][user_]])} )
         except:
             pass
         try:
             for i in range(len(self.data_path_aux_item)):
-                results.update( {f'target_item_aux' : torch.LongTensor([self.item_auxes[i][item_]])} )
+                results.update( {f'target_item_aux_{self.aux_col_item[i]}' : torch.LongTensor([self.item_auxes[i][item_]])} )
         except:
             pass
         
