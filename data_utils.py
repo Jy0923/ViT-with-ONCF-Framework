@@ -76,10 +76,7 @@ class CustomDataset(data.Dataset):
         """
         data_path_main_train: main data 학습 데이터 경로
         data_path_main_test: main data 평가 데이터 경로
-        data_path_aux_user: user auxiliary information 데이터 경로(들) -> 리스트 형태
-        aux_col_user: user axiliary information 정보가 있는 column명(들) -> 리스트 형태
-        data_path_aux_item: item auxiliary information 데이터 경로(들) -> 리스트 형태
-        aux_col_item: item axiliary information 정보가 있는 column명(들)
+        data_path_aux: auxiliary information 데이터 경로
         num_ng: negative sampling 비율 (vs positive sample)
         is_training: training 여부
         """
