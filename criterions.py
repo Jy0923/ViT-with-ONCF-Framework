@@ -13,8 +13,18 @@ class CustomLoss(nn.Module):
 
     def forward(self, pred, pred_user, pred_item, label, label_user, label_item):
         loss_main = self.criterion(pred, label)
-        loss_user = self.criterion(pred_user, label_user)
-        loss_item = self.criterion(pred_item, label_item)
-        loss = self.lambda_main * loss_main + self.lambda_user * loss_user\
-            + self.lambda_item * loss_item
-        return loss, loss_main, loss_user, loss_item
+        if self.lambda_user:
+            loss_user = self.criterion(pred_user, label_user)
+        if self.lambda_item:
+            loss_item = self.criterion(pred_item, label_item)
+
+        if self.lambda_item and self.lambda_user:
+            loss = self.lambda_main * loss_main + self.lambda_user * loss_user\
+                + self.lambda_item * loss_item
+        elif self.lambda_item:
+            loss = self.lambda_main * loss_main + self.lambda_item * loss_item
+        elif self.lambda_user:
+            loss = self.lambda_main * loss_main + self.lambda_user * loss_user
+        else:
+            loss = loss_main
+        return loss
