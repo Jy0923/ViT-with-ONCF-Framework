@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from einops import rearrange, repeat
-from einops.layers.torch import Reduce
+from einops.layers.torch import Rearrange, Reduce
 
 
 class Embedding(nn.Module):
@@ -10,24 +10,38 @@ class Embedding(nn.Module):
                  user_num : int = 100,
                  item_num : int = 100, 
                  emb_size : int = 256, 
-                 factor_num : int = 128):
+                 factor_num : int = 32,
+                 patch_size : int = 4):
         super(Embedding, self).__init__()
-        device = torch.device('cuda' if torch.cuda.is_available else 'cpu')
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.embed_user = [nn.Embedding(user_num, factor_num).to(device) for _ in range(emb_size)]
         self.embed_item = [nn.Embedding(item_num, factor_num).to(device) for _ in range(emb_size)]
+        self.projection = nn.Sequential(
+            nn.Conv2d(emb_size, emb_size, kernel_size = patch_size, stride = patch_size),
+            Rearrange('b e (h) (w) -> b (h w) e')
+        )
+        self.cls_token = nn.Parameter(torch.randn(1,1, emb_size))
+        self.positions = nn.Parameter(torch.randn((factor_num // patch_size) ** 2 + 1, emb_size))
     
     def forward(self, user, item):
+        b, _ = user.size()
 
         embed_user = [layer(user) for layer in self.embed_user]
+        embed_user_ = [emb.permute(0, 2, 1) for emb in embed_user]
+
         embed_item = [layer(item) for layer in self.embed_item]
+
+        embed_outer = [torch.unsqueeze(torch.bmm(emb_u, emb_i), 1) for emb_u, emb_i in zip(embed_user_, embed_item)]
+        embed_outer = torch.cat(embed_outer, dim = 1)
+
+        x = self.projection(embed_outer)
+        cls_tokens = repeat(self.cls_token, '() n e -> b n e', b=b)
+        x = torch.cat([cls_tokens, x], dim=1)
+        x += self.positions
 
         embed_user = torch.cat(embed_user, dim = 1)
         embed_item = torch.cat(embed_item, dim = 1)
 
-        embed_user = rearrange(embed_user, 'b n c -> b c n')
-        embed_item = rearrange(embed_item, 'b n c -> b c n')
-
-        x = torch.cat([embed_user, embed_item], dim = 1)
         return x, embed_user, embed_item
 
 
