@@ -182,7 +182,8 @@ class ViT(nn.Module):
         self.emb = Embedding(user_num = user_num,
                              item_num = item_num, 
                              emb_size = emb_size, 
-                             factor_num = factor_num)
+                             factor_num = factor_num,
+                             patch_size = patch_size)
         self.enc = TransformerEncoder(depth = depth, emb_size = emb_size, **kwargs)
         self.cls = ClassificationHead(emb_size = emb_size, out_size = 1)
 
