@@ -55,7 +55,7 @@
                 "patience" : 3}},
     "top_k" : 10,
     "val_every" : 1,
-    "save_mode": "ndcg",
+    "save_mode": "hr",
     "num_to_remain": 3,
     "fp16": false
 }
