@@ -152,7 +152,6 @@ def train(num_epochs, model, train_loader, val_loader, criterion, optimizer, top
             description =  f'Epoch [{epoch+1}/{num_epochs}], Step [{step+1}/{len(train_loader)}]: ' 
             description += f'running Loss: {round(running_loss,4)}'
             pbar.set_description(description)
-            
              
         # validation 주기에 따른 loss 출력 및 best model 저장
         if (epoch + 1) % val_every == 0:
@@ -177,7 +176,10 @@ def train(num_epochs, model, train_loader, val_loader, criterion, optimizer, top
             # lr 조정
             if scheduler:
                 if isinstance(scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
-                    scheduler.step(running_loss)
+                    if save_mode == 'hr':
+                        scheduler.step(hr)
+                    if save_mode == 'ndcg':
+                        scheduler.step(ndcg)
                 else:
                     scheduler.step()
 
@@ -190,7 +192,7 @@ def validation(epoch, num_epochs, model, data_loader, top_k, device):
         HR = []
         NDCG = []
     
-        for step, input in enumerate(data_loader):
+        for step, input in tqdm(enumerate(data_loader), total = len(data_loader)):
             user = input['user_id'].to(device)
             item = input['item_id'].to(device)
             

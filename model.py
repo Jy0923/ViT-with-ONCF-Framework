@@ -14,8 +14,8 @@ class Embedding(nn.Module):
                  patch_size : int = 4):
         super(Embedding, self).__init__()
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        self.embed_user = [nn.Embedding(user_num, factor_num).to(device) for _ in range(emb_size)]
-        self.embed_item = [nn.Embedding(item_num, factor_num).to(device) for _ in range(emb_size)]
+        self.embed_user = nn.ModuleList([nn.Embedding(user_num, factor_num).to(device) for _ in range(emb_size)])
+        self.embed_item = nn.ModuleList([nn.Embedding(item_num, factor_num).to(device) for _ in range(emb_size)])
         self.projection = nn.Sequential(
             nn.Conv2d(emb_size, emb_size, kernel_size = patch_size, stride = patch_size),
             Rearrange('b e (h) (w) -> b (h w) e')
@@ -154,6 +154,7 @@ class ViT(nn.Module):
                  item_num : int = 100,
                  emb_size : int = 256,
                  factor_num : int = 128,
+                 patch_size : int = 4,
                  depth : int = 12,
                  depth_user : int = 6,
                  depth_item : int = 6,
@@ -181,7 +182,8 @@ class ViT(nn.Module):
         self.emb = Embedding(user_num = user_num,
                              item_num = item_num, 
                              emb_size = emb_size, 
-                             factor_num = factor_num)
+                             factor_num = factor_num,
+                             patch_size = patch_size)
         self.enc = TransformerEncoder(depth = depth, emb_size = emb_size, **kwargs)
         self.cls = ClassificationHead(emb_size = emb_size, out_size = 1)
 
