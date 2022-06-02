@@ -254,7 +254,7 @@ class CustomDataset_ml(data.Dataset):
         item = torch.LongTensor([item_])
         label_main = torch.FloatTensor([labels[idx]])
 
-        aux_user_ = torch.LongTensor([self.aux_user[item_]])
+        aux_user_ = torch.LongTensor([self.aux_user[user_]])
         aux_item_ = torch.LongTensor([self.aux_item[item_]])
 
         results = {'user_id':user,
