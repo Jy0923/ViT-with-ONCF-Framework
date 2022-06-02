@@ -100,8 +100,7 @@ def load_aux(data_path: str,
 
 class CustomDataset_yes24(data.Dataset):
     def __init__(self, data_path_main_train : str, data_path_main_test : str,
-                 data_path_aux_user = None, aux_col_user = None,
-                 data_path_aux_item = None, aux_col_item = None,
+                 data_path_aux_user = None, data_path_aux_item = None,
                  num_ng=0, is_training=None):
         super(CustomDataset_yes24, self).__init__()
         """ Note that the labels are only useful when training, we thus 
@@ -110,10 +109,8 @@ class CustomDataset_yes24(data.Dataset):
         """
         data_path_main_train: main data 학습 데이터 경로
         data_path_main_test: main data 평가 데이터 경로
-        data_path_aux_user: user auxiliary information 데이터 경로(들) -> 리스트 형태
-        aux_col_user: user axiliary information 정보가 있는 column명(들) -> 리스트 형태
-        data_path_aux_item: item auxiliary information 데이터 경로(들) -> 리스트 형태
-        aux_col_item: item axiliary information 정보가 있는 column명(들)
+        data_path_aux_user: user auxiliary information 데이터 경로
+        data_path_aux_item: item auxiliary information 데이터 경로
         num_ng: negative sampling 비율 (vs positive sample)
         is_training: training 여부
         """
@@ -122,20 +119,10 @@ class CustomDataset_yes24(data.Dataset):
         train_data, test_data, user_num, item_num, train_mat = load_all_yes24(data_path_main_train, data_path_main_test)
         
         # loading user auxiliary information data
-        self.user_auxes = []
-        try:
-            for i in range(len(data_path_aux_user)):
-                self.user_auxes.append(load_aux(data_path_aux_user[i], '회원번호', aux_col_user[i]))
-        except:
-            pass
-        
+        self.aux_cat = load_aux(data_path_aux_user, '회원번호', '카테고리')
+
         # loading item auxiliary information data
-        self.item_auxes = []
-        try:
-            for i in range(len(data_path_aux_item)):
-                self.item_auxes.append(load_aux(data_path_aux_item[i], '책제목', aux_col_item[i]))
-        except:
-            pass
+        self.aux_publisher = load_aux(data_path_aux_item, '회원번호', '출판사')
         
         # 학습 여부에 따라 features 변수에 알맞는 데이터 할당
         if is_training == True:
@@ -149,11 +136,6 @@ class CustomDataset_yes24(data.Dataset):
         self.num_ng = num_ng
         self.is_training = is_training
         self.labels = [0 for _ in range(len(features))]
-        
-        self.data_path_aux_user = data_path_aux_user
-        self.data_path_aux_item = data_path_aux_item
-        self.aux_col_user = aux_col_user
-        self.aux_col_item = aux_col_item
 
     def ng_sample(self):
         """negative sampling"""
@@ -189,30 +171,19 @@ class CustomDataset_yes24(data.Dataset):
         item = torch.LongTensor([item_])
         label_main = torch.FloatTensor([labels[idx]])
 
+        category = torch.LongTensor([self.aux_cat[item_]])
+        publisher = torch.LongTensor([self.aux_publisher[item_]])
+
         results = {'user_id':user,
                    'item_id':item, 
                    'target_main':label_main,
-                   'target_user_aux' : torch.empty(1),
-                   'target_item_aux' : torch.empty(1)}
-        
-        # auxiliary information
-        try:
-            for i in range(len(self.data_path_aux_user)):
-                results.update( {f'target_user_aux' : torch.LongTensor([self.user_auxes[i][user_]])} )
-        except:
-            pass
-        try:
-            for i in range(len(self.data_path_aux_item)):
-                results.update( {f'target_item_aux' : torch.LongTensor([self.item_auxes[i][item_]])} )
-        except:
-            pass
+                   'aux_cat':category, 'aux_publisher':publisher}
         
         return results
 
 class CustomDataset_ml(data.Dataset):
     def __init__(self, data_path_main_train : str, data_path_main_test : str,
-                 data_path_aux_user = None, aux_col_user = None,
-                 data_path_aux_item = None, aux_col_item = None,
+                 data_path_aux_user = None, data_path_aux_item = None,
                  num_ng=0, is_training=None):
         super(CustomDataset_ml, self).__init__()
         """ Note that the labels are only useful when training, we thus 
@@ -221,10 +192,8 @@ class CustomDataset_ml(data.Dataset):
         """
         data_path_main_train: main data 학습 데이터 경로
         data_path_main_test: main data 평가 데이터 경로
-        data_path_aux_user: user auxiliary information 데이터 경로(들) -> 리스트 형태
-        aux_col_user: user axiliary information 정보가 있는 column명(들) -> 리스트 형태
-        data_path_aux_item: item auxiliary information 데이터 경로(들) -> 리스트 형태
-        aux_col_item: item axiliary information 정보가 있는 column명(들)
+        data_path_aux_user: user auxiliary information 데이터 경로
+        data_path_aux_item: item auxiliary information 데이터 경로
         num_ng: negative sampling 비율 (vs positive sample)
         is_training: training 여부
         """
@@ -233,20 +202,10 @@ class CustomDataset_ml(data.Dataset):
         train_data, test_data, user_num, item_num, train_mat = load_all_ml(data_path_main_train, data_path_main_test)
         
         # loading user auxiliary information data
-        self.user_auxes = []
-        try:
-            for i in range(len(data_path_aux_user)):
-                self.user_auxes.append(load_aux(data_path_aux_user[i], 'User_ID', aux_col_user[i]))
-        except:
-            pass
-        
-        # loading item auxiliary information data
-        self.item_auxes = []
-        try:
-            for i in range(len(data_path_aux_item)):
-                self.item_auxes.append(load_aux(data_path_aux_item[i], 'MovieID', aux_col_item[i]))
-        except:
-            pass
+        self.aux_user = load_aux(data_path_aux_user, 'User_ID', 'aux')
+
+        # loading user auxiliary information data
+        self.aux_item = load_aux(data_path_aux_item, 'MovieID', 'Genres')
         
         # 학습 여부에 따라 features 변수에 알맞는 데이터 할당
         if is_training == True:
@@ -260,11 +219,6 @@ class CustomDataset_ml(data.Dataset):
         self.num_ng = num_ng
         self.is_training = is_training
         self.labels = [0 for _ in range(len(features))]
-        
-        self.data_path_aux_user = data_path_aux_user
-        self.data_path_aux_item = data_path_aux_item
-        self.aux_col_user = aux_col_user
-        self.aux_col_item = aux_col_item
 
     def ng_sample(self):
         """negative sampling"""
@@ -300,22 +254,13 @@ class CustomDataset_ml(data.Dataset):
         item = torch.LongTensor([item_])
         label_main = torch.FloatTensor([labels[idx]])
 
+        aux_user_ = torch.LongTensor([self.aux_user[item_]])
+        aux_item_ = torch.LongTensor([self.aux_item[item_]])
+
         results = {'user_id':user,
                    'item_id':item, 
                    'target_main':label_main,
-                   'target_user_aux' : torch.empty(1),
-                   'target_item_aux' : torch.empty(1)}
-        
-        # auxiliary information
-        try:
-            for i in range(len(self.data_path_aux_user)):
-                results.update( {f'target_user_aux' : torch.LongTensor([self.user_auxes[i][user_]])} )
-        except:
-            pass
-        try:
-            for i in range(len(self.data_path_aux_item)):
-                results.update( {f'target_item_aux' : torch.LongTensor([self.item_auxes[i][item_]])} )
-        except:
-            pass
+                   'aux_user' : aux_user_,
+                   'aux_item' : aux_item_}
         
         return results
