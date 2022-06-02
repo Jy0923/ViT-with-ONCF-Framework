@@ -260,7 +260,7 @@ class CustomDataset_ml(data.Dataset):
         results = {'user_id':user,
                    'item_id':item, 
                    'target_main':label_main,
-                   'aux_user' : aux_user_,
-                   'aux_item' : aux_item_}
+                   'target_aux_user' : aux_user_,
+                   'target_aux_item' : aux_item_}
         
         return results
