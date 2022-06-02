@@ -6,7 +6,7 @@
                        "args" : {"data_path_main_train" : "./main_data_train_ml.csv",
                                  "data_path_main_test" : "./main_data_test_ml.npy",
                                  "data_path_aux_user" : "./ml_users.csv",
-                                 "data_path_aux_item" : "./ml_items.csv",
+                                 "data_path_aux_item" : "./ml_movies.csv",
                                  "num_ng" : 4,
                                  "is_training" : true}},
     "val_dataset" : {"name" : "CustomDataset_ml",
