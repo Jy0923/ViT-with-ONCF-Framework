@@ -84,14 +84,11 @@ def load_aux(data_path: str,
     """
     data = pd.read_csv(data_path, encoding='cp949')
     
-    id2main = dict(enumerate(data[id_col].unique()))
-    main2id = {j:i for i, j in id2main.items()}
-
     id2aux = dict(enumerate(data[aux_col].unique()))
     aux2id = {j:i for i, j in id2aux.items()}
-    
+
     aux_data = data.groupby(id_col)[aux_col].unique().map(lambda x: x[0]).reset_index()
-    aux_data[id_col] = aux_data[id_col].map(lambda x: main2id[x])
+    aux_data[id_col] = aux_data[id_col]
     aux_data[aux_col] = aux_data[aux_col].map(lambda x: aux2id[x])
 
     res = dict(aux_data.values)
