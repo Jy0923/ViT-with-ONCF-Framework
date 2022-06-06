@@ -132,7 +132,6 @@ class TransformerEncoderBlock(nn.Sequential):
             )
         )
 
-
 class TransformerEncoder(nn.Sequential):
     def __init__(self, depth : int = 12, **kwargs):
         super().__init__(*[TransformerEncoderBlock(**kwargs) for _ in range(depth)])
@@ -144,6 +143,18 @@ class ClassificationHead(nn.Sequential):
             Reduce('b n e -> b e', reduction = 'mean'),
             nn.LayerNorm(emb_size),
             nn.Linear(emb_size, out_size)
+        )
+
+class AuxClassifier(nn.Sequential):
+    def __init__(self, emb_size : int = 256, out_size : int = 1):
+        super().__init__(
+            Reduce('b n e -> b e', reduction = 'mean'),
+            nn.LayerNorm(emb_size),
+            nn.Linear(emb_size, emb_size//2),
+            nn.ReLU(),
+            nn.Linear(emb_size//2, emb_size//4),
+            nn.ReLU(),
+            nn.Linear(emb_size//4, out_size)
         )
 
 class ViT(nn.Module):
@@ -189,11 +200,13 @@ class ViT(nn.Module):
         self.cls = ClassificationHead(emb_size = emb_size, out_size = 1)
 
         if self.user_out:
-            self.enc_user = TransformerEncoder(depth_user, emb_size = emb_size, **kwargs)
-            self.cls_user = ClassificationHead(emb_size = emb_size, out_size = user_out)
+            self.aux_user = AuxClassifier(emb_size = emb_size, out_size = user_out)
+            # self.enc_user = TransformerEncoder(depth_user, emb_size = emb_size, **kwargs)
+            # self.cls_user = ClassificationHead(emb_size = emb_size, out_size = user_out)
         if self.item_out:
-            self.enc_item = TransformerEncoder(depth_item, emb_size = emb_size, **kwargs)
-            self.cls_item = ClassificationHead(emb_size = emb_size, out_size = item_out)
+            self.aux_item = AuxClassifier(emb_size = emb_size, out_size = item_out)
+            # self.enc_item = TransformerEncoder(depth_item, emb_size = emb_size, **kwargs)
+            # self.cls_item = ClassificationHead(emb_size = emb_size, out_size = item_out)
         
     def forward(self, user, item):
         x, embed_user, embed_item = self.emb(user, item)
@@ -207,13 +220,15 @@ class ViT(nn.Module):
         }
 
         if self.user_out:
-            x_user = self.enc_user(embed_user)
+            x_user = self.aux_user(embed_user)
+            #x_user = self.enc_user(embed_user)
             x_user = self.cls_user(x_user)
             result['user'] = x_user
         
         if self.item_out:
-            x_item = self.enc_item(embed_item)
-            x_item = self.cls_item(x_item)
+            x_item = self.aux_item(embed_item)
+            #x_item = self.enc_item(embed_item)
+            #x_item = self.cls_item(x_item)
             result['item'] = x_item
 
         return result
