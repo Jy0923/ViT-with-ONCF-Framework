@@ -25,7 +25,7 @@ class Embedding(nn.Module):
     
     def forward(self, user, item):
         b, _ = user.size()
-
+ 
         embed_user = [layer(user) for layer in self.embed_user]
         embed_user_ = [emb.permute(0, 2, 1) for emb in embed_user]
 
@@ -146,7 +146,6 @@ class ClassificationHead(nn.Sequential):
             nn.Linear(emb_size, out_size)
         )
 
-
 class ViT(nn.Module):
     model_name = "ViT"
     def __init__(self,
@@ -160,6 +159,7 @@ class ViT(nn.Module):
                  depth_item : int = 6,
                  user_out : int = 100,
                  item_out : int = 100,
+                 dropout : float = 0.1,
                  **kwargs):
         """ NCF Framework Using Transformer Structure
 
@@ -173,6 +173,7 @@ class ViT(nn.Module):
             depth_item (int, optional): number of item axiliary classifier encoderBlock. Defaults to 6.
             user_out (int, optional) : output size of user auxiliary classifier. Defaults to 100.
             item_out (int, optional) : output size of item auxiliary classifier. Defaults to 100.
+            dropout (float, optional) : dropout rate
         """
         super().__init__()
 
@@ -184,7 +185,7 @@ class ViT(nn.Module):
                              emb_size = emb_size, 
                              factor_num = factor_num,
                              patch_size = patch_size)
-        self.enc = TransformerEncoder(depth = depth, emb_size = emb_size, **kwargs)
+        self.enc = TransformerEncoder(depth = depth, emb_size = emb_size, forward_drop_p=dropout, drop_p=dropout, **kwargs)
         self.cls = ClassificationHead(emb_size = emb_size, out_size = 1)
 
         if self.user_out:
