@@ -222,7 +222,7 @@ class ViT(nn.Module):
         if self.user_out:
             x_user = self.aux_user(embed_user)
             #x_user = self.enc_user(embed_user)
-            x_user = self.cls_user(x_user)
+            #x_user = self.cls_user(x_user)
             result['user'] = x_user
         
         if self.item_out:
