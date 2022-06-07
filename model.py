@@ -153,7 +153,7 @@ class AuxClassifier(nn.Sequential):
             nn.LayerNorm(emb_size),
             nn.Linear(emb_size, emb_size//2),
             nn.ReLU(),
-            nn.Linear(emb_size//2, emb_size*factor_num//4),
+            nn.Linear(emb_size//2, emb_size//4),
             nn.ReLU(),
             nn.Linear(emb_size, out_size)
             
