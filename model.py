@@ -151,17 +151,11 @@ class AuxClassifier(nn.Sequential):
         super().__init__(
             #Reduce('b n e -> b e', reduction = 'mean'),
             nn.LayerNorm(emb_size*factor_num),
-            nn.Linear(emb_size*factor_num, emb_size*factor_num//2),
+            nn.Linear(emb_size, emb_size//2),
             nn.ReLU(),
-            nn.Linear(emb_size*factor_num//2, emb_size*factor_num//4),
+            nn.Linear(emb_size//2, emb_size*factor_num//4),
             nn.ReLU(),
-            nn.Linear(emb_size*factor_num//4, emb_size*factor_num//8),
-            nn.ReLU(),
-            nn.Linear(emb_size*factor_num//8, emb_size*factor_num//16),
-            nn.ReLU(),
-            nn.Linear(emb_size*factor_num//16, emb_size*factor_num//32),
-            nn.ReLU(),
-            nn.Linear(emb_size*factor_num//32, out_size)
+            nn.Linear(emb_size, out_size)
             
         )
 
