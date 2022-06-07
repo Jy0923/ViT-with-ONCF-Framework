@@ -228,14 +228,14 @@ class ViT(nn.Module):
         }
 
         if self.user_out:
-            embed_user_flat = torch.cat(embed_user)
+            embed_user_flat = torch.cat(tuple(embed_user))
             x_user = self.aux_user(embed_user_flat)
             #x_user = self.enc_user(embed_user)
             #x_user = self.cls_user(x_user)
             result['user'] = x_user
         
         if self.item_out:
-            embed_item_flat = torch.cat(embed_item)
+            embed_item_flat = torch.cat(tuple(embed_item))
             x_item = self.aux_item(embed_item_flat)
             #x_item = self.enc_item(embed_item)
             #x_item = self.cls_item(x_item)
