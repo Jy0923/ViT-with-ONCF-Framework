@@ -149,8 +149,8 @@ class ClassificationHead(nn.Sequential):
 class AuxClassifier(nn.Sequential):
     def __init__(self, emb_size : int = 256, factor_num : int = 16, out_size : int = 1):
         super().__init__(
-            #Reduce('b n e -> b e', reduction = 'mean'),
-            nn.LayerNorm(emb_size*factor_num),
+            Reduce('b n e -> b e', reduction = 'mean'),
+            nn.LayerNorm(emb_size),
             nn.Linear(emb_size, emb_size//2),
             nn.ReLU(),
             nn.Linear(emb_size//2, emb_size*factor_num//4),
