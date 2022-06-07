@@ -145,16 +145,24 @@ class ClassificationHead(nn.Sequential):
             nn.Linear(emb_size, out_size)
         )
 
+
 class AuxClassifier(nn.Sequential):
-    def __init__(self, emb_size : int = 256, out_size : int = 1):
+    def __init__(self, emb_size : int = 256, factor_num : int = 16, out_size : int = 1):
         super().__init__(
-            Reduce('b n e -> b e', reduction = 'mean'),
-            nn.LayerNorm(emb_size),
-            nn.Linear(emb_size, emb_size//2),
+            #Reduce('b n e -> b e', reduction = 'mean'),
+            nn.LayerNorm(emb_size*factor_num),
+            nn.Linear(emb_size*factor_num, emb_size*factor_num//2),
             nn.ReLU(),
-            nn.Linear(emb_size//2, emb_size//4),
+            nn.Linear(emb_size*factor_num//2, emb_size*factor_num//4),
             nn.ReLU(),
-            nn.Linear(emb_size//4, out_size)
+            nn.Linear(emb_size*factor_num//4, emb_size*factor_num//8),
+            nn.ReLU(),
+            nn.Linear(emb_size*factor_num//8, emb_size*factor_num//16),
+            nn.ReLU(),
+            nn.Linear(emb_size*factor_num//16, out_size),
+            #nn.ReLU(),
+            #nn.Linear(emb_size*factor_num//32, out_size)
+            
         )
 
 class ViT(nn.Module):
@@ -170,7 +178,7 @@ class ViT(nn.Module):
                  depth_item : int = 6,
                  user_out : int = 100,
                  item_out : int = 100,
-                 dropout : float = 0.1,
+                 dropout : float = 0.3,
                  **kwargs):
         """ NCF Framework Using Transformer Structure
 
@@ -220,13 +228,15 @@ class ViT(nn.Module):
         }
 
         if self.user_out:
-            x_user = self.aux_user(embed_user)
+            embed_user_flat = torch.cat(embed_user)
+            x_user = self.aux_user(embed_user_flat)
             #x_user = self.enc_user(embed_user)
             #x_user = self.cls_user(x_user)
             result['user'] = x_user
         
         if self.item_out:
-            x_item = self.aux_item(embed_item)
+            embed_item_flat = torch.cat(embed_item)
+            x_item = self.aux_item(embed_item_flat)
             #x_item = self.enc_item(embed_item)
             #x_item = self.cls_item(x_item)
             result['item'] = x_item
