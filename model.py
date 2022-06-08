@@ -145,17 +145,24 @@ class ClassificationHead(nn.Sequential):
             nn.Linear(emb_size, out_size)
         )
 
-class AuxClassifier(nn.Sequential):
-    def __init__(self, emb_size : int = 256, out_size : int = 1):
-        super().__init__(
-            Reduce('b n e -> b e', reduction = 'mean'),
-            nn.LayerNorm(emb_size),
-            nn.Linear(emb_size, emb_size//2),
-            nn.ReLU(),
-            nn.Linear(emb_size//2, emb_size//4),
-            nn.ReLU(),
-            nn.Linear(emb_size//4, out_size)
-        )
+class AuxClassifier(nn.Module):
+    def __init__(self, aux_depth : int = 3, emb_size : int = 256, factor_num : int= 16, out_size : int = 1):
+        super().__init__()
+        self.emb_size = emb_size*factor_num
+        self.out_size = out_size
+        cur_size = self.emb_size
+        MLP_modules = []
+        for i in range(aux_depth-1):
+            input_size = self.emb_size // (2 ** (i))
+            MLP_modules.append(nn.Linear(input_size, input_size//2))
+            MLP_modules.append(nn.ReLU())
+            cur_size = input_size//2
+        MLP_modules.append(nn.Linear(cur_size, self.out_size))
+        self.MLP_layers = nn.Sequential(*MLP_modules)
+
+    def forward(self, x):
+        res = self.MLP_layers(x)
+        return res
 
 class ViT(nn.Module):
     model_name = "ViT"
@@ -166,8 +173,7 @@ class ViT(nn.Module):
                  factor_num : int = 128,
                  patch_size : int = 4,
                  depth : int = 12,
-                 depth_user : int = 6,
-                 depth_item : int = 6,
+                 aux_depth: int = 3,
                  user_out : int = 100,
                  item_out : int = 100,
                  dropout : float = 0.1,
@@ -200,15 +206,16 @@ class ViT(nn.Module):
         self.cls = ClassificationHead(emb_size = emb_size, out_size = 1)
 
         if self.user_out:
-            self.aux_user = AuxClassifier(emb_size = emb_size, out_size = user_out)
+            self.aux_user = AuxClassifier(aux_depth = aux_depth, emb_size = emb_size, factor_num = factor_num, out_size = user_out)
             # self.enc_user = TransformerEncoder(depth_user, emb_size = emb_size, **kwargs)
             # self.cls_user = ClassificationHead(emb_size = emb_size, out_size = user_out)
         if self.item_out:
-            self.aux_item = AuxClassifier(emb_size = emb_size, out_size = item_out)
+            self.aux_item = AuxClassifier(aux_depth = aux_depth, emb_size = emb_size, factor_num = factor_num, out_size = item_out)
             # self.enc_item = TransformerEncoder(depth_item, emb_size = emb_size, **kwargs)
             # self.cls_item = ClassificationHead(emb_size = emb_size, out_size = item_out)
         
     def forward(self, user, item):
+        b, _ = user.size()
         x, embed_user, embed_item = self.emb(user, item)
         x = self.enc(x)
         x = self.cls(x)
@@ -220,13 +227,15 @@ class ViT(nn.Module):
         }
 
         if self.user_out:
-            x_user = self.aux_user(embed_user)
+            x_user = embed_user.view(b,-1)
+            x_user = self.aux_user(x_user)
             #x_user = self.enc_user(embed_user)
             #x_user = self.cls_user(x_user)
             result['user'] = x_user
         
         if self.item_out:
-            x_item = self.aux_item(embed_item)
+            x_item = embed_item.view(b,-1)
+            x_item = self.aux_item(x_item)
             #x_item = self.enc_item(embed_item)
             #x_item = self.cls_item(x_item)
             result['item'] = x_item
