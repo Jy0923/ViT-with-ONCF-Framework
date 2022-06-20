@@ -17,7 +17,7 @@
 
 * 실험 결과
 <div align="center">
-    <image src = "https://github.com/Jy0923/ViT-with-ONCF-Framework/blob/main/figure/figure2.png" width="600" height="300>
+    <image src = "https://github.com/Jy0923/ViT-with-ONCF-Framework/blob/main/figure/figure2.png" width="300" height="150>
 </div>
 
 
