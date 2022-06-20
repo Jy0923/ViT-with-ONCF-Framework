@@ -10,10 +10,10 @@
 2. ONCF에 기반한 외적 방법론을 적용하고 합성곱 신경망 구조 대신 ViT 구조를 적용한다.
 3. 보조 분류기를 사용하여 잠재 벡터가 보조 정보를 내포하도록 한다.
 
-<div align="center">
-    <image src = "https://github.com/Jy0923/ViT-with-ONCF-Framework/blob/main/figure/figure1.png" width="600" height="500">
-    <image src = "https://github.com/Jy0923/ViT-with-ONCF-Framework/blob/main/figure/figure2.png" width="300" height="150>
-</div>
+* 모델 구조
+<image src = "https://github.com/Jy0923/ViT-with-ONCF-Framework/blob/main/figure/figure1.png" width="600" height="500">
+* 실험 결과
+<image src = "https://github.com/Jy0923/ViT-with-ONCF-Framework/blob/main/figure/figure2.png" width="300" height="150>
 
 
 ## Contents
