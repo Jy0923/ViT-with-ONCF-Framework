@@ -1,6 +1,6 @@
 # ViT with ONCF Framework
 
-### 보조 정보를 효과적으로 사용하기 위한 새로운 방법 : ONCF 프레임워크를 사용햔 ViT
+### 보조 정보를 효과적으로 사용하기 위한 새로운 방법 : ONCF 프레임워크를 사용한 ViT
 ### A New Methology for Effective Use of Auxiliary Information : ViT with ONCF Framework
 [오주영](https://github.com/Jy0923), [권유진](https://github.com/rnjsdb72), [최민석](https://github.com/ChoiMinS), [장서윤](https://github.com/sy00n)
 
