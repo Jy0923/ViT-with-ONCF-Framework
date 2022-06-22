@@ -15,7 +15,7 @@
 * 실험 결과
 <image src = "https://github.com/Jy0923/ViT-with-ONCF-Framework/blob/main/figure/figure2.png" width="300" height="150>
 
-<br>
+
 ## Contents
 1. [Environment Settings](#environment-settings)
 2. [Training](#training)
