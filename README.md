@@ -13,7 +13,7 @@
 * 모델 구조
 <image src = "https://github.com/Jy0923/ViT-with-ONCF-Framework/blob/main/figure/figure1.png" width="600" height="500">
 * 실험 결과
-<image src = "https://github.com/Jy0923/ViT-with-ONCF-Framework/blob/main/figure/figure2.png" width="300" height="150>
+<image src = "https://github.com/Jy0923/ViT-with-ONCF-Framework/blob/main/figure/figure2.png" width="300" height="150">
 
 
 ## Contents
